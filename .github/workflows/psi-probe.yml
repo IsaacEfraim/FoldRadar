@@ -41,7 +41,20 @@ jobs:
                   return None, str(e)
 
           print("=" * 72)
-          print("1. Does the key work for PageSpeed Insights at all?")
+          print("0. Control: is the key present, and does it work for Gemini?")
+          print("=" * 72)
+          print(f"   key present: {bool(KEY)}   length: {len(KEY)}")
+          ctl, err = call(
+              "https://generativelanguage.googleapis.com/v1beta/models"
+              f"?key={KEY}&pageSize=1")
+          if err:
+              print(f"   Gemini API: REJECTED -> {err[:200]}")
+          else:
+              print("   Gemini API: ACCEPTED - the key itself is valid and live.")
+          print()
+
+          print("=" * 72)
+          print("1. Does that same key work for PageSpeed Insights?")
           print("=" * 72)
           q = urllib.parse.urlencode(
               [("url", PAGES[0]), ("strategy", "mobile"), ("key", KEY)]
