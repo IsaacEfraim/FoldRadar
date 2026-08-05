@@ -13,9 +13,9 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -57,8 +57,27 @@ jobs:
           echo "Deployed: $url"
           npx --yes vercel@latest alias set "$url" foldradar.com     --token="$VERCEL_TOKEN"
           npx --yes vercel@latest alias set "$url" www.foldradar.com --token="$VERCEL_TOKEN"
-          # prove it actually went live, don't just assume
-          sleep 5
-          live=$(curl -s "https://foldradar.com/news?cb=$(date +%s)" | grep -o 'Last refresh: [^<]*' | head -1)
-          echo "LIVE => $live"
-          echo "$live" | grep -q "$(date -u '+%B %-d, %Y')" || { echo "::error::foldradar.com did not update"; exit 1; }
+
+          # Prove it actually went live, don't just assume. Compare against the
+          # string the build really wrote rather than re-deriving the date here:
+          # Python's %d zero-pads ("August 04, 2026") but `date -u '+%B %-d, %Y'`
+          # does not ("August 4, 2026"), so every run on the 1st-9th failed this
+          # check even though the deploy was fine.
+          expected=$(grep -o 'Last refresh: [^<]*' news.html | head -1)
+          test -n "$expected" || { echo "::error::no 'Last refresh' line in the built news.html"; exit 1; }
+          echo "EXPECTED => $expected"
+
+          # the CDN can keep serving the previous build for a few seconds after
+          # the alias moves, so poll instead of a single fixed sleep
+          live=""
+          for attempt in 1 2 3 4 5 6; do
+            live=$(curl -s "https://foldradar.com/news?cb=$(date +%s)" | grep -o 'Last refresh: [^<]*' | head -1 || true)
+            echo "attempt $attempt: LIVE => ${live:-<none>}"
+            if [ "$live" = "$expected" ]; then
+              echo "foldradar.com is live with today's build."
+              exit 0
+            fi
+            if [ "$attempt" -lt 6 ]; then sleep 10; fi
+          done
+          echo "::error::foldradar.com did not update (expected '$expected', got '${live:-<none>}')"
+          exit 1
