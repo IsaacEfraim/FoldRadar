@@ -205,6 +205,69 @@ def build():
     articles_html = "\n".join(render(it, a, n) for n, (it, a) in enumerate(zip(stories, articles))) \
         or '    <p>No fresh foldable stories today — check back tomorrow.</p>'
 
+    # Structured data for the feed. The page was previously a bare WebPage, so
+    # none of the day's articles were machine-readable — nothing for Top stories,
+    # nothing for an assistant to cite. Each story becomes a NewsArticle in an
+    # ItemList, credited to the outlet it came from.
+    org_node = {
+        "@type": "Organization",
+        "@id": "https://foldradar.com/#org",
+        "name": "FoldRadar",
+        "url": "https://foldradar.com/",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://foldradar.com/og/logo.png",
+            "width": 512,
+            "height": 512,
+        },
+        "description": "Independent tracker for foldable phones: iPhone Fold, "
+                       "Galaxy Z Fold, Pixel Fold and more.",
+    }
+
+    collection_node = {
+        "@type": "CollectionPage",
+        "name": "Foldable news today — daily articles",
+        "url": "https://foldradar.com/news",
+        "mainEntityOfPage": "https://foldradar.com/news",
+        "dateModified": today.isoformat(),
+        "inLanguage": "en",
+        "publisher": {"@id": "https://foldradar.com/#org"},
+        "mainEntity": {
+            "@type": "ItemList",
+            "numberOfItems": len(articles),
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": n + 1,
+                    "item": {
+                        "@type": "NewsArticle",
+                        "headline": art["headline"][:110],
+                        "description": (art["body"][0][:200] if art["body"] else ""),
+                        "url": f"https://foldradar.com/news#s{n + 1}",
+                        "mainEntityOfPage": f"https://foldradar.com/news#s{n + 1}",
+                        "datePublished": item["date"] or today.isoformat(),
+                        "dateModified": today.isoformat(),
+                        "articleSection": "Foldable phones",
+                        "inLanguage": "en",
+                        "image": "https://foldradar.com/og/news.png",
+                        "author": {"@id": "https://foldradar.com/#org"},
+                        "publisher": {"@id": "https://foldradar.com/#org"},
+                        "sourceOrganization": {
+                            "@type": "Organization",
+                            "name": item["source"],
+                        },
+                    },
+                }
+                for n, (item, art) in enumerate(zip(stories, articles))
+            ],
+        },
+    }
+
+    news_ld = json.dumps({
+        "@context": "https://schema.org",
+        "@graph": [org_node, collection_node],
+    }, ensure_ascii=False, indent=2)
+
     page = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -213,23 +276,27 @@ def build():
 <title>Foldable News Today — Daily Articles | FoldRadar</title>
 <meta name="description" content="Today's foldable phone news as full articles in FoldRadar's words: iPhone Fold rumors, Galaxy Z Fold and Razr coverage, credited to the source. Updated {updated_human}.">
 <link rel="canonical" href="https://foldradar.com/news">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="preload" href="/fonts/Inter-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/fonts/SpaceGrotesk-700.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/style.css">
+<meta name="robots" content="max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta property="og:site_name" content="FoldRadar">
+<meta property="og:locale" content="en_US">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Foldable News Today — Daily Articles">
 <meta property="og:description" content="The day's foldable stories as full articles, written by FoldRadar. Updated daily.">
 <meta property="og:url" content="https://foldradar.com/news">
+<meta property="og:image" content="https://foldradar.com/og/news.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="FoldRadar — Foldable News Today — Daily Articles">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Foldable News Today — Daily Articles">
+<meta name="twitter:description" content="The day's foldable stories as full articles, written by FoldRadar. Updated daily.">
+<meta name="twitter:image" content="https://foldradar.com/og/news.png">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/Inter-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/SpaceGrotesk-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/style.css">
 <script type="application/ld+json">
-{{
-  "@context": "https://schema.org",
-  "@type": "WebPage",
-  "name": "Foldable news today — daily articles",
-  "dateModified": "{today.isoformat()}",
-  "mainEntityOfPage": "https://foldradar.com/news",
-  "publisher": {{ "@id": "https://foldradar.com/#org" }}
-}}
+{news_ld}
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
 </head>

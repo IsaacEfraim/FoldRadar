@@ -8,9 +8,25 @@
 <link rel="canonical" href="https://foldradar.com/which-foldable">
 <link rel="alternate" hreflang="en" href="https://foldradar.com/which-foldable">
 <link rel="alternate" hreflang="x-default" href="https://foldradar.com/which-foldable">
+<meta name="robots" content="max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta property="og:site_name" content="FoldRadar">
+<meta property="og:locale" content="en_US">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Which Foldable Phone Should You Buy? 30-Second Quiz">
+<meta property="og:description" content="5 questions. Your match: iPhone Fold, Z Fold 7, Pixel 10 Pro Fold, Magic V5 or a flip.">
+<meta property="og:url" content="https://foldradar.com/which-foldable">
+<meta property="og:image" content="https://foldradar.com/og/which-foldable.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="FoldRadar — Which Foldable Phone Should You Buy? 30-Second Quiz">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Which Foldable Phone Should You Buy? 30-Second Quiz">
+<meta name="twitter:description" content="5 questions. Your match: iPhone Fold, Z Fold 7, Pixel 10 Pro Fold, Magic V5 or a flip.">
+<meta name="twitter:image" content="https://foldradar.com/og/which-foldable.png">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="preload" href="/fonts/Inter-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/fonts/SpaceGrotesk-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="apple-touch-icon" href="/og/logo.png">
+<link rel="preload" href="/fonts/Inter-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/SpaceGrotesk-var.woff2" as="font" type="font/woff2" crossorigin>
 <style data-app-css>
 /* ==========================================================================
    FoldRadar — visual system
@@ -21,47 +37,17 @@
 @font-face {
   font-family: 'Inter';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 100 900;
   font-display: swap;
-  src: url('/fonts/Inter-400.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('/fonts/Inter-500.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('/fonts/Inter-600.woff2') format('woff2');
+  src: url('/fonts/Inter-var.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Space Grotesk';
   font-style: normal;
-  font-weight: 500;
+  font-weight: 300 700;
   font-display: swap;
-  src: url('/fonts/SpaceGrotesk-500.woff2') format('woff2');
+  src: url('/fonts/SpaceGrotesk-var.woff2') format('woff2');
 }
-@font-face {
-  font-family: 'Space Grotesk';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('/fonts/SpaceGrotesk-600.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Space Grotesk';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/SpaceGrotesk-700.woff2') format('woff2');
-}
-
-
 :root {
   /* fold duotone */
   --amber: #ff7a1a;
@@ -555,14 +541,23 @@ footer.site a { color: var(--muted); }
 }
 
 </style>
-<meta property="og:type" content="website">
-<meta property="og:title" content="Which Foldable Phone Should You Buy? 30-Second Quiz">
-<meta property="og:description" content="5 questions. Your match: iPhone Fold, Z Fold 7, Pixel 10 Pro Fold, Magic V5 or a flip.">
-<meta property="og:url" content="https://foldradar.com/which-foldable">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://foldradar.com/#org",
+      "name": "FoldRadar",
+      "url": "https://foldradar.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://foldradar.com/og/logo.png",
+        "width": 512,
+        "height": 512
+      },
+      "description": "Independent tracker for foldable phones: iPhone Fold, Galaxy Z Fold, Pixel Fold and more."
+    },
     {
       "@type": "WebPage",
       "name": "Which foldable phone should you buy? A 30-second quiz",
@@ -570,13 +565,31 @@ footer.site a { color: var(--muted); }
       "datePublished": "2026-07-20",
       "dateModified": "2026-07-20",
       "mainEntityOfPage": "https://foldradar.com/which-foldable",
-      "publisher": { "@id": "https://foldradar.com/#org" }
+      "publisher": {
+        "@id": "https://foldradar.com/#org"
+      },
+      "image": {
+        "@type": "ImageObject",
+        "url": "https://foldradar.com/og/which-foldable.png",
+        "width": 1200,
+        "height": 630
+      }
     },
     {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "FoldRadar", "item": "https://foldradar.com/" },
-        { "@type": "ListItem", "position": 2, "name": "Which foldable quiz", "item": "https://foldradar.com/which-foldable" }
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "FoldRadar",
+          "item": "https://foldradar.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Which foldable quiz",
+          "item": "https://foldradar.com/which-foldable"
+        }
       ]
     }
   ]
