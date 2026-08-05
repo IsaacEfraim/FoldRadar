@@ -4,10 +4,17 @@ on:
   schedule:
     - cron: "0 5 * * *"    # 05:00 UTC = morning Israel/Europe, before US wakes up
     - cron: "0 16 * * *"   # 16:00 UTC = catches news that broke during the US/EU day
+  push:
+    branches: [master]       # any change to the site deploys, not just news
   workflow_dispatch:         # manual run button in the Actions tab
 
 permissions:
   contents: write
+
+# never let a push deploy race a scheduled one onto the same alias
+concurrency:
+  group: publish-foldradar
+  cancel-in-progress: false
 
 jobs:
   refresh:
@@ -19,33 +26,39 @@ jobs:
         with:
           python-version: "3.12"
 
+      # A push already IS the content — rebuilding here would race the commit
+      # that triggered the run. Only the scheduled/manual runs pull the feeds.
+      # (Pushes made by this job use GITHUB_TOKEN, which by design does not
+      # trigger another workflow run, so there is no loop.)
       - name: Rebuild news.html from feeds
+        if: github.event_name != 'push'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python scripts/build_news.py
 
       - name: Commit and push if changed
-        id: commit
+        if: github.event_name != 'push'
         run: |
           git config user.name "foldradar-bot"
           git config user.email "actions@users.noreply.github.com"
           git add news.html index.html sitemap.xml
           if git diff --cached --quiet; then
-            echo "No changes today."
-            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No news changes this run."
           else
             git commit -m "Daily news refresh $(date -u +%F)"
             git push
-            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
       # foldradar.com is detached from Vercel's auto-assignment: neither git nor
       # CLI --prod deploys claim it, so we deploy and then alias both domains
-      # explicitly. Fails loudly if anything goes wrong — a silent skip is what
-      # let the live site sit on stale content for two days.
+      # explicitly.
+      #
+      # This step is deliberately unconditional. It used to be gated on the news
+      # having changed, which meant a commit that touched anything else — styles,
+      # images, meta, schema — could sit in the repo unpublished indefinitely,
+      # waiting for an unrelated news story to drag it out.
       - name: Publish to foldradar.com
-        if: steps.commit.outputs.changed == 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: team_WnZJkSXAggvrkhYsPGsAXm2t
@@ -58,26 +71,33 @@ jobs:
           npx --yes vercel@latest alias set "$url" foldradar.com     --token="$VERCEL_TOKEN"
           npx --yes vercel@latest alias set "$url" www.foldradar.com --token="$VERCEL_TOKEN"
 
-          # Prove it actually went live, don't just assume. Compare against the
-          # string the build really wrote rather than re-deriving the date here:
-          # Python's %d zero-pads ("August 04, 2026") but `date -u '+%B %-d, %Y'`
-          # does not ("August 4, 2026"), so every run on the 1st-9th failed this
-          # check even though the deploy was fine.
-          expected=$(grep -o 'Last refresh: [^<]*' news.html | head -1)
-          test -n "$expected" || { echo "::error::no 'Last refresh' line in the built news.html"; exit 1; }
-          echo "EXPECTED => $expected"
+          # Prove it went live by comparing bytes, not a date string. Vercel
+          # serves these files verbatim, so the live hash must equal the repo
+          # hash — that holds for a news refresh and for a pure styling change
+          # alike, and it cannot pass by coincidence the way a date match could.
+          verify() {
+            local path="$1" file="$2" want have=""
+            want=$(sha256sum < "$file" | cut -d" " -f1)
+            # the CDN can serve the previous build for a few seconds after the
+            # alias moves, so poll rather than sleep once and hope
+            for attempt in 1 2 3 4 5 6; do
+              have=$(curl -fsS "https://foldradar.com${path}?cb=$(date +%s)" 2>/dev/null | sha256sum | cut -d" " -f1 || true)
+              if [ "$have" = "$want" ]; then
+                echo "  ok    ${path}"
+                return 0
+              fi
+              if [ "$attempt" -lt 6 ]; then sleep 10; fi
+            done
+            echo "::error::${path} on foldradar.com does not match the repo (want ${want}, got ${have:-<none>})"
+            return 1
+          }
 
-          # the CDN can keep serving the previous build for a few seconds after
-          # the alias moves, so poll instead of a single fixed sleep
-          live=""
-          for attempt in 1 2 3 4 5 6; do
-            live=$(curl -s "https://foldradar.com/news?cb=$(date +%s)" | grep -o 'Last refresh: [^<]*' | head -1 || true)
-            echo "attempt $attempt: LIVE => ${live:-<none>}"
-            if [ "$live" = "$expected" ]; then
-              echo "foldradar.com is live with today's build."
-              exit 0
-            fi
-            if [ "$attempt" -lt 6 ]; then sleep 10; fi
-          done
-          echo "::error::foldradar.com did not update (expected '$expected', got '${live:-<none>}')"
-          exit 1
+          echo "Last refresh in this build: $(grep -o 'Last refresh: [^<]*' news.html | head -1)"
+          rc=0
+          verify "/"     index.html || rc=1
+          verify "/news" news.html  || rc=1
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::foldradar.com is not serving this build"
+            exit 1
+          fi
+          echo "foldradar.com is live with this build."
